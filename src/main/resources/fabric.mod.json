@@ -14,7 +14,7 @@
     "repo": "https://github.com/katanya04/mine-spawners"
   },
   "entrypoints": {
-    "main": ["me.katanya04.minespawners.Main"],
+    "main": ["me.katanya04.minespawners.MineSpawnersMod"],
     "modmenu": ["me.katanya04.minespawners.config.ModMenuEntryPoint"]
   },
   "license": "GNU General Public License v3.0",
@@ -23,7 +23,8 @@
   "mixins": ["mine-spawners.mixins.json"],
   "depends": {
     "fabricloader": ">=${loader_version}",
-    "fabric": "*",
-    "minecraft": ">=1.21.11 <1.22"
+    "fabric-api": "*",
+    "minecraft": "26.3",
+    "java": ">=25"
   }
 }

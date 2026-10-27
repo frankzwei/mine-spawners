@@ -5,11 +5,10 @@ import java.util.List;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.chat.contents.PlainTextContents;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 
 /**
@@ -17,8 +16,10 @@ import net.minecraft.world.item.Item;
  */
 @Environment(EnvType.CLIENT)
 public class PickaxeButton extends Button {
+
     public final Item pickaxe;
     public final Screen screen;
+
     public PickaxeButton(int x, int y, int size, Item pickaxe, Screen screen) {
         super(x, y, size, size, net.minecraft.network.chat.Component.empty(),
                 self -> {
@@ -28,26 +29,28 @@ public class PickaxeButton extends Button {
                     } else {
                         blacklistedPickaxes.add(pickaxe.toString());
                     }
+
                     SimpleConfig.BLACKLISTED_PICKAXES.setValue(blacklistedPickaxes);
                 },
-                supplier ->
-                        MutableComponent.create(new PlainTextContents.LiteralContents(pickaxe.getName().getString()))
+
+                supplier -> Component.literal(pickaxe.getDefaultInstance().getHoverName().toString())
         );
+
         this.pickaxe = pickaxe;
         this.screen = screen;
     }
 
     @Override
-    protected void renderContents(GuiGraphics context, int mouseX, int mouseY, float deltaTicks) {
+    protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float deltaTicks) {
         int itemX = this.getX() + (this.width - 16) / 2;
         int itemY = this.getY() + (this.height - 16) / 2;
-        context.renderItem(this.pickaxe.getDefaultInstance(), itemX, itemY);
-        if (this.isHovered())
-            context.setTooltipForNextFrame(this.screen.getFont(), this.pickaxe.getName(), mouseX, mouseY);
+        graphics.item(this.pickaxe.getDefaultInstance(), itemX, itemY);
+        if (this.isHovered()) {
+            graphics.setTooltipForNextFrame(this.pickaxe.getDefaultInstance().getHoverName(), itemX, itemY);
+        }
+
         if (SimpleConfig.BLACKLISTED_PICKAXES.contains(pickaxe.toString())) {
-            context.drawString(this.screen.getFont(),
-                    MutableComponent.create(new PlainTextContents.LiteralContents("X")).withStyle(ChatFormatting.BOLD),
-                    getX(), getY(), 0xFFFF0000, true);
+            graphics.text(this.screen.getFont(), Component.literal("X").withStyle(ChatFormatting.BOLD), this.getX(), this.getY(), 0xFFFF0000, true);
         }
     }
 }

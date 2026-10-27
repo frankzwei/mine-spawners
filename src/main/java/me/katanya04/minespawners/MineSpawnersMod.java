@@ -9,9 +9,11 @@ import net.fabricmc.loader.impl.util.log.LogCategory;
 /**
  * Entrypoint for the mod
  */
-public class Main implements ModInitializer {
+public class MineSpawnersMod implements ModInitializer {
+
     public static final String MOD_ID = "mine_spawners";
     public static final LogCategory logCategory = LogCategory.create("Mine Spawners");
+
     @Override
     public void onInitialize() {
         LootRegistration.register();

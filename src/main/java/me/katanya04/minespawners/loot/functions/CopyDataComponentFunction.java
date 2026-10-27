@@ -6,10 +6,9 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import me.katanya04.minespawners.loot.LootRegistration;
 import net.minecraft.commands.arguments.NbtPathArgument;
+import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponentType;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -17,13 +16,11 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.util.context.ContextKey;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.component.TypedEntityData;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.functions.LootItemConditionalFunction;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
-import net.minecraft.world.level.storage.loot.functions.LootItemFunctionType;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import net.minecraft.world.level.storage.loot.providers.nbt.NbtProvider;
 import net.minecraft.world.level.storage.loot.providers.nbt.NbtProviders;
@@ -31,12 +28,14 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /**
  * A LootTable function that copies NBT from the source to DataComponents of the target
  */
 public class CopyDataComponentFunction extends LootItemConditionalFunction {
+
     public static final MapCodec<CopyDataComponentFunction> CODEC = RecordCodecBuilder.mapCodec((instance) ->
             commonFields(instance).and(
                     instance.group(
@@ -49,15 +48,11 @@ public class CopyDataComponentFunction extends LootItemConditionalFunction {
     private final BlockEntityType<?> blockEntityType;
     private final List<CopyOperation> operations;
 
-    CopyDataComponentFunction(List<LootItemCondition> conditions, NbtProvider source, BlockEntityType<?> blockEntityType, List<CopyOperation> operations) {
-        super(conditions);
+    CopyDataComponentFunction(Optional<Holder<LootItemCondition>> condition, NbtProvider source, BlockEntityType<?> blockEntityType, List<CopyOperation> operations) {
+        super(condition);
         this.source = source;
         this.blockEntityType = blockEntityType;
         this.operations = List.copyOf(operations);
-    }
-
-    public @NotNull LootItemFunctionType<CopyDataComponentFunction> getType() {
-        return LootRegistration.copyDataComponentFunctionType;
     }
 
     @Override
@@ -68,16 +63,18 @@ public class CopyDataComponentFunction extends LootItemConditionalFunction {
     @Override
     public ItemStack run(ItemStack item, LootContext context) {
         Tag sourceTag = this.source.get(context);
-        if (sourceTag == null)
+        if (sourceTag == null) {
             return item;
+        }
+
         HashMap<DataComponentType<TypedEntityData<BlockEntityType<?>>>, TypedEntityData<BlockEntityType<?>>> tags = new HashMap<>();
-        this.operations.forEach((op) -> {
+        this.operations.forEach(op -> {
             if (!tags.containsKey(op.ComponentType))
-                tags.put(op.ComponentType, (TypedEntityData<BlockEntityType<?>>) item.getOrDefault(op.ComponentType, TypedEntityData.of(DataComponents.BLOCK_ENTITY_DATA, CustomData.EMPTY.copyTag())));
+                tags.put(op.ComponentType, (TypedEntityData<BlockEntityType<?>>) item.getOrDefault(op.ComponentType, TypedEntityData.of(this.blockEntityType, new CompoundTag())));
             op.apply(tags, sourceTag, blockEntityType);
         });
-        tags.forEach(item::set);
 
+        tags.forEach(item::set);
         return item;
     }
 
@@ -116,7 +113,7 @@ public class CopyDataComponentFunction extends LootItemConditionalFunction {
 
         @Override
         public @NotNull LootItemFunction build() {
-            return new CopyDataComponentFunction(this.getConditions(), this.source, this.blockEntityType, this.ops);
+            return new CopyDataComponentFunction(this.getCondition(), this.source, this.blockEntityType, this.ops);
         }
     }
 
@@ -195,5 +192,10 @@ public class CopyDataComponentFunction extends LootItemConditionalFunction {
         public String getSerializedName() {
             return this.name;
         }
+    }
+
+    @Override
+    public MapCodec<? extends LootItemConditionalFunction> codec() {
+        return CODEC;
     }
 }

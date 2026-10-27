@@ -5,7 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.Codec;
-import me.katanya04.minespawners.Main;
+import me.katanya04.minespawners.MineSpawnersMod;
 import me.katanya04.minespawners.config.valuetypes.ConfigValue;
 import me.katanya04.minespawners.config.valuetypes.FloatConfigValue;
 import me.katanya04.minespawners.config.valuetypes.ListConfigValue;
@@ -54,7 +54,7 @@ public class SimpleConfig {
                 try {
                     v.setValueFromJson(json);
                 } catch (Exception exception) {
-                    Log.warn(Main.logCategory, "Malformed entry for " + v.getKey() + " configuration value. Correcting");
+                    Log.warn(MineSpawnersMod.logCategory, "Malformed entry for " + v.getKey() + " configuration value. Correcting");
                 }
             });
             configFile.delete();

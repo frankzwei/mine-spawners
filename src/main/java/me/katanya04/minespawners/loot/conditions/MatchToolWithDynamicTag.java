@@ -2,18 +2,16 @@ package me.katanya04.minespawners.loot.conditions;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import me.katanya04.minespawners.loot.LootRegistration;
 import me.katanya04.minespawners.tags.DynamicTags;
-import net.minecraft.advancements.criterion.ItemPredicate;
+import net.minecraft.advancements.predicates.ItemPredicate;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.context.ContextKey;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemInstance;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
-import net.minecraft.world.level.storage.loot.predicates.LootItemConditionType;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
@@ -25,6 +23,7 @@ import java.util.Set;
  * @param dynamicTag the dynamic tag to check
  */
 public record MatchToolWithDynamicTag(Optional<ItemPredicate> predicate, TagKey<Item> dynamicTag) implements LootItemCondition {
+
     public static final MapCodec<MatchToolWithDynamicTag> CODEC = RecordCodecBuilder.mapCodec(
             instance -> instance.group(
                     ItemPredicate.CODEC.optionalFieldOf("predicate").forGetter(MatchToolWithDynamicTag::predicate),
@@ -33,23 +32,22 @@ public record MatchToolWithDynamicTag(Optional<ItemPredicate> predicate, TagKey<
     );
 
     @Override
-    public @NotNull LootItemConditionType getType() {
-        return LootRegistration.matchToolWithDynamicTagType;
-    }
-
-    @Override
     public @NotNull Set<ContextKey<?>> getReferencedContextParams() {
         return Set.of(LootContextParams.TOOL);
     }
 
     @Override
     public boolean test(LootContext lootContext) {
-        ItemStack itemstack = lootContext.getOptionalParameter(LootContextParams.TOOL);
-        return itemstack != null && (this.predicate.isEmpty() || this.predicate.get().test(itemstack)) &&
-                DynamicTags.isInTag(itemstack, this.dynamicTag);
+        ItemInstance item = lootContext.getOptional(LootContextParams.TOOL);
+        return item != null && (this.predicate.isEmpty() || this.predicate.get().test(item)) && DynamicTags.isInTag(item, this.dynamicTag);
     }
 
     public static LootItemCondition.Builder toolMatches(ItemPredicate.Builder predicate, TagKey<Item> dynamicTag) {
         return () -> new MatchToolWithDynamicTag(Optional.of(predicate.build()), dynamicTag);
+    }
+
+    @Override
+    public MapCodec<? extends LootItemCondition> codec() {
+        return CODEC;
     }
 }

@@ -3,7 +3,7 @@ package me.katanya04.minespawners.loot.functions;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import me.katanya04.minespawners.loot.LootRegistration;
+import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
@@ -14,18 +14,18 @@ import net.minecraft.world.item.component.TypedEntityData;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.functions.LootItemConditionalFunction;
-import net.minecraft.world.level.storage.loot.functions.LootItemFunctionType;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
  * A LootTable function that sets NBT to a ComponentType<TypedEntityData<?>> of the target
  */
 public class SetDataComponentFunction extends LootItemConditionalFunction {
+
     public static final MapCodec<SetDataComponentFunction> CODEC = RecordCodecBuilder.mapCodec(
             instance -> commonFields(instance)
                     .and(DataComponentType.CODEC.fieldOf("dataComponentType").forGetter(function -> function.dataComponentType))
@@ -34,6 +34,7 @@ public class SetDataComponentFunction extends LootItemConditionalFunction {
                     .apply(instance, (conditions, componentType, typedEntityData, mode) ->
                             new SetDataComponentFunction(conditions, (DataComponentType<TypedEntityData<BlockEntityType<?>>>) componentType, typedEntityData, mode))
     );
+
     private final DataComponentType<TypedEntityData<BlockEntityType<?>>> dataComponentType;
     private final TypedEntityData<BlockEntityType<?>> data;
     public enum Mode implements StringRepresentable {
@@ -50,18 +51,14 @@ public class SetDataComponentFunction extends LootItemConditionalFunction {
             return this.name;
         }
     }
+
     private final Mode mode;
 
-    private SetDataComponentFunction(List<LootItemCondition> conditions, DataComponentType<TypedEntityData<BlockEntityType<?>>> dataComponentType, TypedEntityData<BlockEntityType<?>> data, Mode mode) {
-        super(conditions);
+    private SetDataComponentFunction(Optional<Holder<LootItemCondition>> condition, DataComponentType<TypedEntityData<BlockEntityType<?>>> dataComponentType, TypedEntityData<BlockEntityType<?>> data, Mode mode) {
+        super(condition);
         this.dataComponentType = dataComponentType;
         this.data = data;
         this.mode = mode;
-    }
-
-    @Override
-    public @NotNull LootItemFunctionType<SetDataComponentFunction> getType() {
-        return LootRegistration.setDataComponentFunctionType;
     }
 
     @Override
@@ -86,18 +83,26 @@ public class SetDataComponentFunction extends LootItemConditionalFunction {
                     currentEntries.putAll(newEntries);
                     entries = currentEntries;
                 }
+
                 CompoundTag newData = new CompoundTag();
                 for (Map.Entry<String, Tag> entry : entries.entrySet()) {
                     newData.put(entry.getKey(), entry.getValue());
                 }
+
                 data = TypedEntityData.of(this.data.type(), newData);
             }
         }
+
         item.set(dataComponentType, data);
         return item;
     }
 
     public static LootItemConditionalFunction.Builder<?> builder(DataComponentType<TypedEntityData<BlockEntityType<?>>> dataComponentType, TypedEntityData<BlockEntityType<?>> data, Mode mode) {
         return simpleBuilder(conditions -> new SetDataComponentFunction(conditions, dataComponentType, data, mode));
+    }
+
+    @Override
+    public MapCodec<? extends LootItemConditionalFunction> codec() {
+        return CODEC;
     }
 }
